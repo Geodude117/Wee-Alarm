@@ -15,6 +15,7 @@ SIZES = {
     "iPhone-6.9-inch": (1320, 2868),
     "iPhone-6.5-inch": (1284, 2778),
     "iPhone-6.3-inch": (1206, 2622),
+    "iPhone-6.1-inch": (1179, 2556),
 }
 
 CAPTIONS = {
