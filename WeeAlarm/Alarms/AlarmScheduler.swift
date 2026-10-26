@@ -25,10 +25,17 @@ final class AlarmScheduler: AlarmScheduling {
 
     func requestPermissions() async {
         let manager = AlarmManager.shared
-        if manager.authorizationState == .notDetermined {
-            _ = try? await manager.requestAuthorization()
+        var state = manager.authorizationState
+        print("[WeeAlarm] AlarmKit authorization before request: \(state)")
+        if state == .notDetermined {
+            do {
+                state = try await manager.requestAuthorization()
+                print("[WeeAlarm] AlarmKit authorization result: \(state)")
+            } catch {
+                print("[WeeAlarm] AlarmKit authorization request failed: \(error)")
+            }
         }
-        if manager.authorizationState != .authorized {
+        if state != .authorized && manager.authorizationState != .authorized {
             _ = try? await UNUserNotificationCenter.current()
                 .requestAuthorization(options: [.alert, .sound, .badge])
         }
@@ -74,14 +81,20 @@ final class AlarmScheduler: AlarmScheduling {
 
     private var testAlarmID: UUID?
 
+    /// Try a real alarm unless the person has turned alarms off. If permission hasn't
+    /// been asked yet, scheduling makes iOS show the alarm permission prompt itself.
+    private var canTryAlarmKit: Bool {
+        AlarmManager.shared.authorizationState != .denied
+    }
+
     private func applyTest(dogName: String) async {
         let date = Date().addingTimeInterval(60)
-        if AlarmManager.shared.authorizationState == .authorized {
+        if canTryAlarmKit {
             do {
                 testAlarmID = try await scheduleAlarm(at: date, dogName: dogName, isTest: true)
                 return
             } catch {
-                print("AlarmKit test alarm failed, falling back to a notification: \(error)")
+                print("[WeeAlarm] AlarmKit test alarm failed, falling back to a notification: \(error)")
             }
         }
         await scheduleNotification(at: date, dogName: dogName, isTest: true)
@@ -91,12 +104,12 @@ final class AlarmScheduler: AlarmScheduling {
         cancelAll()
         guard let date, date > Date() else { return }
 
-        if AlarmManager.shared.authorizationState == .authorized {
+        if canTryAlarmKit {
             do {
                 try await scheduleAlarm(at: date, dogName: dogName, isTest: false)
                 return
             } catch {
-                print("AlarmKit scheduling failed, falling back to a notification: \(error)")
+                print("[WeeAlarm] AlarmKit scheduling failed, falling back to a notification: \(error)")
             }
         }
         await scheduleNotification(at: date, dogName: dogName, isTest: false)

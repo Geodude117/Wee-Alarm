@@ -45,6 +45,12 @@ struct HomeView: View {
                 .tracking(3)
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 8)
+                #if DEBUG
+                // Screenshot helper: triple-tap the name to jump the timer forward.
+                .onTapGesture(count: 3) {
+                    withAnimation(.spring(duration: 0.8)) { store.debugCycleDemo() }
+                }
+                #endif
 
             ZStack(alignment: .top) {
                 BladderView(level: progress, overdue: overdue)

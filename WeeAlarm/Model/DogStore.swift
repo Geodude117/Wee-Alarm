@@ -94,6 +94,21 @@ final class DogStore {
         scheduler?.reschedule(at: nextDue, dogName: profile?.name ?? "")
     }
 
+    #if DEBUG
+    /// Screenshot helper (Debug builds only): jumps the timer through
+    /// ~35% full → ~85% full → due in 20 seconds → overdue, then back.
+    func debugCycleDemo(now: Date = Date()) {
+        guard let profile else { return }
+        let interval = TimeInterval(profile.intervalMinutes * 60)
+        let states: [TimeInterval] = [interval * 0.35, interval * 0.85, interval - 20, interval + 4 * 60]
+        let elapsed = lastLetOut.map { now.timeIntervalSince($0) } ?? 0
+        let next = states.first { $0 > elapsed + 1 } ?? states[0]
+        lastLetOut = now.addingTimeInterval(-next)
+        snoozedUntil = nil
+        commit()
+    }
+    #endif
+
     /// A store with a sample dog for SwiftUI previews. Never touches real alarms.
     /// (Not wrapped in #if DEBUG because #Preview blocks are compiled in Release too.)
     static var preview: DogStore {

@@ -106,6 +106,14 @@ Take them in the **iPhone 17 Pro Max simulator** (it captures at 1320 × 2868) w
 
 Rules that cause rejections: screenshots must show the real app, no device frames are required, and no fake system UI or other companies' logos.
 
+### Ready-made images
+
+- `AppStore/screenshots/iPhone-6.9-inch/` (1320 × 2868), `iPhone-6.5-inch/` (1284 × 2778), `iPhone-6.3-inch/` (1206 × 2622): six captioned screenshots each, in upload order. Only the 6.9" set is required; App Store Connect scales it for smaller iPhones.
+- `AppStore/screenshots/raw-iPhone-18-Pro-Max/`: the original simulator captures.
+- `AppStore/creative/`: optional Header (3840 × 1646) and Search Results (3840 × 2560) images, plus a 16:9 image (5244 × 2950) that works for both.
+- Regenerate with `Branding/make_screenshots.py` and `Branding/make_store_assets.py`.
+- In Debug builds, triple-tap the dog's name on the home screen to jump the timer to 35%, 85%, due in 20 seconds, or overdue, for taking screenshots.
+
 ## 8. Pre-submission checklist
 
 **Account and project**
