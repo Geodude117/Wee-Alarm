@@ -79,6 +79,9 @@ enum Recommendation {
         return max(1, hours) * 60
     }
 
+    /// Shown wherever we suggest an interval, so it never reads as veterinary advice.
+    static let disclaimer = "This is a general guide, not veterinary advice. If your dog has a health condition, ask your vet."
+
     static func reason(age: AgeGroup, size: DogSize) -> String {
         var reason: String
         switch age {

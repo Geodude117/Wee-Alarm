@@ -55,6 +55,13 @@ WeeAlarmTests/               Swift Testing unit tests
 Config/Info.plist            NSAlarmKitUsageDescription
 ```
 
+## App Store
+
+- `AppStore/APP_STORE.md` has the listing text, keywords, privacy answers, review notes, screenshot guide and a submission checklist.
+- `Branding/` has the logo (icon, transparent mark and wordmark) and the script that draws it.
+- Privacy policy: https://geodude117.github.io/Portfolio/wee-alarm/privacy/
+- Support: https://geodude117.github.io/Portfolio/wee-alarm/
+
 ## Recommended intervals
 
 | Dog | Interval |

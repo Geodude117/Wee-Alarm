@@ -14,6 +14,7 @@ final class AlarmScheduler: AlarmScheduling {
     static let shared = AlarmScheduler()
 
     static let notificationID = "wee-reminder"
+    static let testNotificationID = "wee-test"
     static let categoryID = "WEE_REMINDER"
     static let letOutActionID = "LET_OUT"
     static let snoozeActionID = "SNOOZE"
@@ -61,23 +62,50 @@ final class AlarmScheduler: AlarmScheduling {
         }
     }
 
+    /// A one-off alarm in a minute, so people (and App Review) can check it rings on silent.
+    /// It's kept separate from the real alarm, so rescheduling doesn't cancel it.
+    func scheduleTest(dogName: String) {
+        let previous = pending
+        pending = Task { [weak self] in
+            await previous?.value
+            await self?.applyTest(dogName: dogName)
+        }
+    }
+
+    private var testAlarmID: UUID?
+
+    private func applyTest(dogName: String) async {
+        let date = Date().addingTimeInterval(60)
+        if AlarmManager.shared.authorizationState == .authorized {
+            do {
+                testAlarmID = try await scheduleAlarm(at: date, dogName: dogName, isTest: true)
+                return
+            } catch {
+                print("AlarmKit test alarm failed, falling back to a notification: \(error)")
+            }
+        }
+        await scheduleNotification(at: date, dogName: dogName, isTest: true)
+    }
+
     private func apply(date: Date?, dogName: String) async {
         cancelAll()
         guard let date, date > Date() else { return }
 
         if AlarmManager.shared.authorizationState == .authorized {
             do {
-                try await scheduleAlarm(at: date, dogName: dogName)
+                try await scheduleAlarm(at: date, dogName: dogName, isTest: false)
                 return
             } catch {
                 print("AlarmKit scheduling failed, falling back to a notification: \(error)")
             }
         }
-        await scheduleNotification(at: date, dogName: dogName)
+        await scheduleNotification(at: date, dogName: dogName, isTest: false)
     }
 
-    private func scheduleAlarm(at date: Date, dogName: String) async throws {
-        let title = dogName.isEmpty ? "Wee time!" : "\(dogName) needs a wee"
+    @discardableResult
+    private func scheduleAlarm(at date: Date, dogName: String, isTest: Bool) async throws -> UUID {
+        let base = dogName.isEmpty ? "Wee time!" : "\(dogName) needs a wee"
+        let title = isTest ? "Test alarm: \(base)" : base
         let letOutButton = AlarmButton(text: "Let out",
                                        textColor: .black,
                                        systemImageName: "pawprint.fill")
@@ -94,12 +122,15 @@ final class AlarmScheduler: AlarmScheduling {
             secondaryIntent: LetOutIntent(),
             sound: .default
         )
-        _ = try await AlarmManager.shared.schedule(id: UUID(), configuration: configuration)
+        let id = UUID()
+        _ = try await AlarmManager.shared.schedule(id: id, configuration: configuration)
+        return id
     }
 
-    private func scheduleNotification(at date: Date, dogName: String) async {
+    private func scheduleNotification(at date: Date, dogName: String, isTest: Bool) async {
         let content = UNMutableNotificationContent()
-        content.title = dogName.isEmpty ? "Wee time! 🐶" : "\(dogName) needs a wee 🐶"
+        let base = dogName.isEmpty ? "Wee time! 🐶" : "\(dogName) needs a wee 🐶"
+        content.title = isTest ? "Test alarm: \(base)" : base
         content.body = "Time to let them out."
         content.sound = .default
         content.categoryIdentifier = Self.categoryID
@@ -107,13 +138,15 @@ final class AlarmScheduler: AlarmScheduling {
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, date.timeIntervalSinceNow),
                                                         repeats: false)
-        let request = UNNotificationRequest(identifier: Self.notificationID, content: content, trigger: trigger)
+        let identifier = isTest ? Self.testNotificationID : Self.notificationID
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
         try? await UNUserNotificationCenter.current().add(request)
     }
 
+    /// Cancels the real alarm. Leaves a pending test alarm alone.
     private func cancelAll() {
         let manager = AlarmManager.shared
-        for alarm in (try? manager.alarms) ?? [] {
+        for alarm in (try? manager.alarms) ?? [] where alarm.id != testAlarmID {
             try? manager.cancel(id: alarm.id)
         }
         let center = UNUserNotificationCenter.current()

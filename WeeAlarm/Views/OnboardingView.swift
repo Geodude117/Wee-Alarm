@@ -144,11 +144,16 @@ struct OnboardingView: View {
             .font(.rounded(15, .semibold))
             .animation(.spring, value: interval == recommended)
 
-            Text(Recommendation.reason(age: age, size: size))
-                .font(.rounded(15, .regular))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 12)
+            VStack(spacing: 8) {
+                Text(Recommendation.reason(age: age, size: size))
+                    .font(.rounded(15, .regular))
+                    .foregroundStyle(.secondary)
+                Text(Recommendation.disclaimer)
+                    .font(.rounded(12, .regular))
+                    .foregroundStyle(.tertiary)
+            }
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 12)
         }
         .sensoryFeedback(.selection, trigger: interval)
     }

@@ -7,6 +7,7 @@ struct SettingsView: View {
 
     @State private var draft: DogProfile?
     @State private var confirmReset = false
+    @State private var testScheduled = false
 
     var body: some View {
         NavigationStack {
@@ -81,7 +82,8 @@ struct SettingsView: View {
         } header: {
             Text("Wee breaks")
         } footer: {
-            Text(Recommendation.reason(age: profile.wrappedValue.age, size: profile.wrappedValue.size))
+            Text(Recommendation.reason(age: profile.wrappedValue.age, size: profile.wrappedValue.size)
+                 + " " + Recommendation.disclaimer)
         }
 
         Section {
@@ -97,9 +99,30 @@ struct SettingsView: View {
         }
 
         Section {
+            Button {
+                Task {
+                    await AlarmScheduler.shared.requestPermissions()
+                    AlarmScheduler.shared.scheduleTest(dogName: profile.wrappedValue.name)
+                    withAnimation { testScheduled = true }
+                }
+            } label: {
+                Label(testScheduled ? "Test alarm rings in 1 minute" : "Test the alarm",
+                      systemImage: testScheduled ? "checkmark.circle.fill" : "alarm")
+            }
+            .disabled(testScheduled)
             Button("Alarm & notification permissions") {
                 if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
             }
+        } header: {
+            Text("Alarm")
+        } footer: {
+            Text("Try it with your phone on silent and locked to check you'll hear it.")
+        }
+
+        Section("About") {
+            Link("Privacy policy", destination: AppLinks.privacyPolicy)
+            Link("Help & support", destination: AppLinks.support)
+            LabeledContent("Version", value: AppLinks.version)
         }
 
         Section {
