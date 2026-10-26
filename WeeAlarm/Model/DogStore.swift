@@ -12,7 +12,7 @@ protocol AlarmScheduling: AnyObject {
 @MainActor
 @Observable
 final class DogStore {
-    static let shared = DogStore()
+    static let shared = DogStore(scheduler: AlarmScheduler.shared)
 
     private(set) var profile: DogProfile? = nil
     private(set) var lastLetOut: Date? = nil
@@ -28,7 +28,7 @@ final class DogStore {
         var snoozedUntil: Date?
     }
 
-    init(defaults: UserDefaults = .standard, scheduler: AlarmScheduling? = AlarmScheduler.shared) {
+    init(defaults: UserDefaults = .standard, scheduler: AlarmScheduling?) {
         self.defaults = defaults
         self.scheduler = scheduler
         load()
@@ -70,7 +70,9 @@ final class DogStore {
 
     func snooze(minutes: Int = 15, now: Date = Date()) {
         guard profile != nil else { return }
-        snoozedUntil = now.addingTimeInterval(TimeInterval(minutes * 60))
+        // Snoozing early should push the alarm later, never pull it forward.
+        let from = max(now, nextDue ?? now)
+        snoozedUntil = from.addingTimeInterval(TimeInterval(minutes * 60))
         commit()
     }
 

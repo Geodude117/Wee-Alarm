@@ -163,6 +163,15 @@ struct DogStoreTests {
         #expect(store.nextDue == now.addingTimeInterval(15 * 60))
     }
 
+    @Test func snoozingEarlyNeverBringsTheAlarmForward() {
+        let store = DogStore(defaults: freshDefaults(), scheduler: nil)
+        let start = Date()
+        store.completeSetup(profile, now: start)
+        let originalDue = store.nextDue!
+        store.snooze(minutes: 15, now: start.addingTimeInterval(60 * 60))
+        #expect(store.nextDue == originalDue.addingTimeInterval(15 * 60))
+    }
+
     @Test func progressGoesFromZeroToOne() {
         let store = DogStore(defaults: freshDefaults(), scheduler: nil)
         let start = Date()

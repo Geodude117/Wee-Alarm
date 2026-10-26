@@ -104,6 +104,9 @@ struct SettingsView: View {
                     await AlarmScheduler.shared.requestPermissions()
                     AlarmScheduler.shared.scheduleTest(dogName: profile.wrappedValue.name)
                     withAnimation { testScheduled = true }
+                    // Let it be used again once the test alarm has rung.
+                    try? await Task.sleep(for: .seconds(65))
+                    withAnimation { testScheduled = false }
                 }
             } label: {
                 Label(testScheduled ? "Test alarm rings in 1 minute" : "Test the alarm",

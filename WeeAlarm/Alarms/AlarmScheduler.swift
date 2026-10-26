@@ -115,14 +115,14 @@ final class AlarmScheduler: AlarmScheduling {
         let attributes = AlarmAttributes<WeeAlarmMetadata>(presentation: AlarmPresentation(alert: alert),
                                                            metadata: WeeAlarmMetadata(),
                                                            tintColor: Theme.yellow)
+        let id = UUID()
         let configuration = AlarmManager.AlarmConfiguration<WeeAlarmMetadata>.alarm(
             schedule: .fixed(date),
             attributes: attributes,
             stopIntent: nil,
-            secondaryIntent: LetOutIntent(),
+            secondaryIntent: LetOutIntent(alarmID: id.uuidString),
             sound: .default
         )
-        let id = UUID()
         _ = try await AlarmManager.shared.schedule(id: id, configuration: configuration)
         return id
     }

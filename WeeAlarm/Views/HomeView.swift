@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @Environment(DogStore.self) private var store
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var showSettings = false
     @State private var burst = 0
@@ -16,7 +17,9 @@ struct HomeView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView()
         }
-        .task {
+        .task(id: scenePhase) {
+            // Re-check when coming back from the Settings app, so the banner goes away.
+            guard scenePhase == .active else { return }
             canAlert = await AlarmScheduler.shared.canAlert()
         }
         .sensoryFeedback(.success, trigger: burst)
