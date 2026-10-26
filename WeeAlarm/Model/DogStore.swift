@@ -94,8 +94,8 @@ final class DogStore {
         scheduler?.reschedule(at: nextDue, dogName: profile?.name ?? "")
     }
 
-    #if DEBUG
     /// A store with a sample dog for SwiftUI previews. Never touches real alarms.
+    /// (Not wrapped in #if DEBUG because #Preview blocks are compiled in Release too.)
     static var preview: DogStore {
         let defaults = UserDefaults(suiteName: "preview.\(UUID().uuidString)") ?? .standard
         let store = DogStore(defaults: defaults, scheduler: nil)
@@ -103,7 +103,6 @@ final class DogStore {
                             now: Date().addingTimeInterval(-2 * 3600))
         return store
     }
-    #endif
 
     // MARK: Persistence
 
