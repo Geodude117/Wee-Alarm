@@ -5,7 +5,7 @@ A tiny iPhone app that reminds you to let your dog out for a wee — built for w
 ## What it does
 
 - **Three-step setup:** your dog's name, age and size, then a recommended wee-break interval you can adjust.
-- **A real alarm:** uses AlarmKit, so it rings even on silent or in a Focus mode. Falls back to a notification if alarms aren't allowed.
+- **A real alarm:** on iOS 26.1 and later it uses AlarmKit, so it rings even on silent or in a Focus mode. On iOS 17–26.0, or if alarms aren't allowed, it uses a time-sensitive notification instead.
 - **"Let out" from the alarm:** tap Let out on the ringing alarm and the next timer starts, without opening the app.
 - **Quiet hours:** no alarms overnight (23:00–07:00 by default). A break that lands in quiet hours waits until the morning.
 - **Snooze:** 15 more minutes when you can't step away yet.
@@ -20,7 +20,7 @@ A tiny iPhone app that reminds you to let your dog out for a wee — built for w
 ## Requirements
 
 - Xcode 26 or later
-- iOS 26.1 or later (AlarmKit)
+- iOS 17 or later. Real alarms (AlarmKit) on iOS 26.1+, time-sensitive notifications on iOS 17–26.0
 
 ## Getting started
 

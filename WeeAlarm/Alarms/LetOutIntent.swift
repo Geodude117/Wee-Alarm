@@ -1,4 +1,3 @@
-import AlarmKit
 import AppIntents
 import Foundation
 
@@ -21,10 +20,11 @@ struct LetOutIntent: LiveActivityIntent {
 
     func perform() async throws -> some IntentResult {
         // A custom alarm button doesn't dismiss the alarm by itself, so stop it here.
-        if let id = UUID(uuidString: alarmID) {
-            try? AlarmManager.shared.stop(id: id)
-        }
+        let id = UUID(uuidString: alarmID)
         await MainActor.run {
+            if #available(iOS 26.1, *), let id {
+                AlarmKitBackend.stop(id: id)
+            }
             DogStore.shared.letOut()
         }
         return .result()

@@ -43,7 +43,7 @@ puppy,pee,toilet,training,timer,pet,housetraining,walk,bladder,pup,outside,gamin
 > • Get a suggested wee-break interval, then adjust it to suit your dog
 >
 > A REAL ALARM
-> • Rings through silent mode and Focus
+> • Rings through silent mode and Focus (iOS 26 or later; earlier versions get a notification)
 > • Tap Let out on the alarm and the next timer starts automatically
 > • Snooze for 15 minutes when you can't step away yet
 > • Quiet hours keep the night alarm-free
@@ -59,6 +59,10 @@ puppy,pee,toilet,training,timer,pet,housetraining,walk,bladder,pup,outside,gamin
 > Suggested intervals are a general guide, not veterinary advice. If your dog has a health condition, ask your vet how often they need to go out.
 
 **What's New** (for 1.0, Apple fills this in automatically; for later versions write one or two lines)
+
+## Version 1.1 — What's New
+
+> Wee Alarm now works on more iPhones: it supports iOS 17 and later. On iOS 26 and later it still uses a real alarm that rings even on silent; on earlier versions it sends a time-sensitive notification instead.
 
 ## 3. App Privacy (the "nutrition label")
 

@@ -1,14 +1,11 @@
-import AlarmKit
 import SwiftUI
 import UserNotifications
 
-/// AlarmKit needs a metadata type, even if we have nothing extra to store.
-struct WeeAlarmMetadata: AlarmMetadata {}
-
 /// Puts the next wee break on the device.
 ///
-/// AlarmKit is the main path: a real alarm that rings through silent mode and Focus.
-/// If alarms aren't allowed, it falls back to a normal local notification.
+/// On iOS 26.1 and later the main path is AlarmKit: a real alarm that rings through
+/// silent mode and Focus. On older iOS, or if alarms aren't allowed, it falls back
+/// to a time-sensitive local notification.
 @MainActor
 final class AlarmScheduler: AlarmScheduling {
     static let shared = AlarmScheduler()
@@ -20,30 +17,27 @@ final class AlarmScheduler: AlarmScheduling {
     static let snoozeActionID = "SNOOZE"
 
     private var pending: Task<Void, Never>?
+    private var testAlarmID: UUID?
+
+    /// True when this iPhone can use real alarms (iOS 26.1+). Used for wording in the UI.
+    static var supportsRealAlarms: Bool {
+        if #available(iOS 26.1, *) { return true }
+        return false
+    }
 
     // MARK: Permissions
 
     func requestPermissions() async {
-        let manager = AlarmManager.shared
-        var state = manager.authorizationState
-        print("[WeeAlarm] AlarmKit authorization before request: \(state)")
-        if state == .notDetermined {
-            do {
-                state = try await manager.requestAuthorization()
-                print("[WeeAlarm] AlarmKit authorization result: \(state)")
-            } catch {
-                print("[WeeAlarm] AlarmKit authorization request failed: \(error)")
-            }
+        if #available(iOS 26.1, *) {
+            if await AlarmKitBackend.requestAuthorization() { return }
         }
-        if state != .authorized && manager.authorizationState != .authorized {
-            _ = try? await UNUserNotificationCenter.current()
-                .requestAuthorization(options: [.alert, .sound, .badge])
-        }
+        _ = try? await UNUserNotificationCenter.current()
+            .requestAuthorization(options: [.alert, .sound, .badge])
     }
 
     /// True if we can alert the user in some way.
     func canAlert() async -> Bool {
-        if AlarmManager.shared.authorizationState == .authorized { return true }
+        if #available(iOS 26.1, *), AlarmKitBackend.isAuthorized { return true }
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         return settings.authorizationStatus == .authorized
     }
@@ -69,7 +63,7 @@ final class AlarmScheduler: AlarmScheduling {
         }
     }
 
-    /// A one-off alarm in a minute, so people (and App Review) can check it rings on silent.
+    /// A one-off alarm in a minute, so people (and App Review) can check it rings.
     /// It's kept separate from the real alarm, so rescheduling doesn't cancel it.
     func scheduleTest(dogName: String) {
         let previous = pending
@@ -79,23 +73,11 @@ final class AlarmScheduler: AlarmScheduling {
         }
     }
 
-    private var testAlarmID: UUID?
-
-    /// Try a real alarm unless the person has turned alarms off. If permission hasn't
-    /// been asked yet, scheduling makes iOS show the alarm permission prompt itself.
-    private var canTryAlarmKit: Bool {
-        AlarmManager.shared.authorizationState != .denied
-    }
-
     private func applyTest(dogName: String) async {
         let date = Date().addingTimeInterval(60)
-        if canTryAlarmKit {
-            do {
-                testAlarmID = try await scheduleAlarm(at: date, dogName: dogName, isTest: true)
-                return
-            } catch {
-                print("[WeeAlarm] AlarmKit test alarm failed, falling back to a notification: \(error)")
-            }
+        if let id = await tryAlarmKit(at: date, dogName: dogName, isTest: true) {
+            testAlarmID = id
+            return
         }
         await scheduleNotification(at: date, dogName: dogName, isTest: true)
     }
@@ -103,50 +85,35 @@ final class AlarmScheduler: AlarmScheduling {
     private func apply(date: Date?, dogName: String) async {
         cancelAll()
         guard let date, date > Date() else { return }
-
-        if canTryAlarmKit {
-            do {
-                try await scheduleAlarm(at: date, dogName: dogName, isTest: false)
-                return
-            } catch {
-                print("[WeeAlarm] AlarmKit scheduling failed, falling back to a notification: \(error)")
-            }
-        }
+        if await tryAlarmKit(at: date, dogName: dogName, isTest: false) != nil { return }
         await scheduleNotification(at: date, dogName: dogName, isTest: false)
     }
 
-    @discardableResult
-    private func scheduleAlarm(at date: Date, dogName: String, isTest: Bool) async throws -> UUID {
+    /// Schedules a real alarm when the OS supports it and alarms aren't turned off.
+    /// If permission hasn't been asked yet, scheduling makes iOS show the prompt itself.
+    /// Returns nil when the notification fallback should be used instead.
+    private func tryAlarmKit(at date: Date, dogName: String, isTest: Bool) async -> UUID? {
+        guard #available(iOS 26.1, *), !AlarmKitBackend.isDenied else { return nil }
+        do {
+            return try await AlarmKitBackend.schedule(at: date, title: Self.title(dogName: dogName, isTest: isTest))
+        } catch {
+            print("[WeeAlarm] AlarmKit scheduling failed, falling back to a notification: \(error)")
+            return nil
+        }
+    }
+
+    private static func title(dogName: String, isTest: Bool) -> String {
         let base = dogName.isEmpty ? "Wee time!" : "\(dogName) needs a wee"
-        let title = isTest ? "Test alarm: \(base)" : base
-        let letOutButton = AlarmButton(text: "Let out",
-                                       textColor: .black,
-                                       systemImageName: "pawprint.fill")
-        let alert = AlarmPresentation.Alert(title: LocalizedStringResource(stringLiteral: title),
-                                            secondaryButton: letOutButton,
-                                            secondaryButtonBehavior: .custom)
-        let attributes = AlarmAttributes<WeeAlarmMetadata>(presentation: AlarmPresentation(alert: alert),
-                                                           metadata: WeeAlarmMetadata(),
-                                                           tintColor: Theme.yellow)
-        let id = UUID()
-        let configuration = AlarmManager.AlarmConfiguration<WeeAlarmMetadata>.alarm(
-            schedule: .fixed(date),
-            attributes: attributes,
-            stopIntent: nil,
-            secondaryIntent: LetOutIntent(alarmID: id.uuidString),
-            sound: .default
-        )
-        _ = try await AlarmManager.shared.schedule(id: id, configuration: configuration)
-        return id
+        return isTest ? "Test alarm: \(base)" : base
     }
 
     private func scheduleNotification(at date: Date, dogName: String, isTest: Bool) async {
         let content = UNMutableNotificationContent()
-        let base = dogName.isEmpty ? "Wee time! 🐶" : "\(dogName) needs a wee 🐶"
-        content.title = isTest ? "Test alarm: \(base)" : base
+        content.title = Self.title(dogName: dogName, isTest: isTest) + " 🐶"
         content.body = "Time to let them out."
         content.sound = .default
         content.categoryIdentifier = Self.categoryID
+        // Breaks through Focus (with the Time Sensitive Notifications capability).
         content.interruptionLevel = .timeSensitive
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, date.timeIntervalSinceNow),
@@ -158,9 +125,8 @@ final class AlarmScheduler: AlarmScheduling {
 
     /// Cancels the real alarm. Leaves a pending test alarm alone.
     private func cancelAll() {
-        let manager = AlarmManager.shared
-        for alarm in (try? manager.alarms) ?? [] where alarm.id != testAlarmID {
-            try? manager.cancel(id: alarm.id)
+        if #available(iOS 26.1, *) {
+            AlarmKitBackend.cancelAll(keeping: testAlarmID)
         }
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [Self.notificationID])

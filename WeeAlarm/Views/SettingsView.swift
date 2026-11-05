@@ -119,7 +119,11 @@ struct SettingsView: View {
         } header: {
             Text("Alarm")
         } footer: {
-            Text("Try it with your phone on silent and locked to check you'll hear it.")
+            if AlarmScheduler.supportsRealAlarms {
+                Text("Try it with your phone on silent and locked to check you'll hear it.")
+            } else {
+                Text("On this version of iOS, Wee Alarm uses a notification instead of an alarm, so keep your ringer on. Update to iOS 26 or later for alarms that ring even on silent.")
+            }
         }
 
         Section("About") {
