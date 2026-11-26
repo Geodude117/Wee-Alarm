@@ -8,7 +8,7 @@ Everything you need to paste into App Store Connect, plus a checklist to get thr
 
 | Field | Value |
 |---|---|
-| Name | **Poppy’s Wee Alarm: Dog Timer** (28 of 30; from version 1.1, named after Poppy) |
+| Name | **Poppy’s Potty Alarm: Dog Timer** (30 of 30; from version 1.1, named after Poppy) |
 | Subtitle (30 max) | **Puppy toilet break reminders** (28) |
 | Bundle ID | `com.geodude117.WeeAlarm` |
 | SKU | `wee-alarm-ios` |
@@ -29,7 +29,7 @@ Everything you need to paste into App Store Connect, plus a checklist to get thr
 **Keywords** (100 max, comma-separated, no spaces; words already in the name and subtitle are left out because Apple indexes those anyway)
 
 ```
-pee,loo,poo,pet,pup,walk,bladder,housetraining,training,outside,gaming,focus,clock,wee alarm,doggy
+wee,pee,loo,poo,pet,pup,walk,bladder,housetraining,training,outside,gaming,focus,clock,doggy
 ```
 
 **Description**
